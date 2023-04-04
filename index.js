@@ -17,7 +17,7 @@ const s3 = new AWS.S3({
 const cors = require("cors");
 
 const app = express();
-
+const PORT = process.env.PORT || 3000;
 app.use(cors());
 
 app.get("/get-signed-url", async (req, res) => {
@@ -114,4 +114,4 @@ app.get("/get-signed-url", async (req, res) => {
   // });
 });
 
-app.listen(8080);
+app.listen(PORT);
