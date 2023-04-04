@@ -2,6 +2,15 @@ const express = require("express");
 const AWS = require("aws-sdk");
 const crypto = require("crypto");
 const fs = require("fs");
+require('dotenv').config()
+// env vars
+AWS.config.update({
+  accessKeyId: process.env.accessKeyId,
+  secretAccessKey: process.env.secretAccessKey,
+  sessionToken: process.env.sessionToken
+});
+
+
 const s3 = new AWS.S3({
   region: "us-east-1",
 });
