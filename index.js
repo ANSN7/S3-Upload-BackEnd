@@ -18,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors());
 
-app.post("/api/s3/encrypted-file/upload", async (req, res) => {
+app.get("/api/s3/encrypted-file/upload", async (req, res) => {
   const myBucket = "webapp1buckett";
   const downloadPath = "./downloaded-file";
 
