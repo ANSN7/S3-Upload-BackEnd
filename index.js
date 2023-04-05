@@ -2,6 +2,7 @@ const express = require("express");
 const AWS = require("aws-sdk");
 const crypto = require("crypto");
 const fs = require("fs");
+var encryptor = require("file-encryptor");
 require("dotenv").config();
 // env vars
 AWS.config.update({
@@ -20,84 +21,80 @@ app.use(cors());
 
 app.get("/api/s3/encrypted-file/upload", async (req, res) => {
   const myBucket = "webapp1buckett";
-  const downloadPath = "./downloaded-file";
+  const downloadPath1 = "myFile200MB";
+  const downloadPath2 = "myFile512MB";
+  const paths = { 1: downloadPath1, 2: downloadPath2 };
+  const t = {};
+  let i = 0;
+  Object.values(paths).forEach(async path => {
+    console.log(path)
+    i = i + 1;
+    const file = fs.createWriteStream(path);
 
-  s3.getObject({ Bucket: myBucket, Key: "myFile1GB" }, function (error, data) {
-    if (error != null) {
-      console.log("Failed to retrieve an object: " + error);
-      throw err;
-    } else {
-      fs.writeFileSync(downloadPath, data.Body);
-      console.log("Loaded " + data.ContentLength + " bytes");
+    const { ContentLength: contentLength } = await s3
+      .headObject({ Bucket: myBucket, Key: path })
+      .promise();
 
-      const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
-        modulusLength: 2048,
-        publicKeyEncoding: {
-          type: "spki",
-          format: "pem",
-        },
-        privateKeyEncoding: {
-          type: "pkcs8",
-          format: "pem",
-        },
-      });
+    const start = performance.now();
+    const rs = s3.getObject({ Bucket: myBucket, Key: path }).createReadStream();
 
-      fs.writeFileSync("private.pem", privateKey);
-      fs.writeFileSync("public.pem", publicKey);
-      const publicKeyPem = fs.readFileSync("public.pem");
-      console.log(publicKeyPem);
-      const inputFile = "downloaded-file";
-      const outputFile = "cipher";
+    let downloadedSize = 0;
+    setInterval(() => {
+      console.log(
+        `Progress:(${Math.round((downloadedSize / contentLength) * 100)}%)`
+      );
+    }, 60 * 1000);
 
-      const inputBuffer = fs.readFileSync(inputFile);
+    rs.on("data", function (chunk) {
+      file.write(chunk);
+      downloadedSize += chunk.length;
+    });
 
-      let chunk_size = 214; // 214 bytes is the maximum for 2048-bit key
-      let chunks = [];
-      for (i = 0; i < inputBuffer.length; i = i + chunk_size) {
-        chunks.push(inputBuffer.slice(i, i + chunk_size));
-      }
+    rs.on("end", () => {
+      console.log("Download completed");
+      file.end();
 
-      let encryptedBuffer;
-      for (chunk in chunks)
-        encryptedBuffer += crypto.publicEncrypt(publicKeyPem, chunk);
+      const outputFile = `encrypted_${path}.dat`;
+      var key = crypto.randomBytes(32);
+      var options = { algorithm: "aes256" };
 
-      fs.writeFileSync(outputFile, encrypted);
-
-      fs.stat(outputFile, (err, stats) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-        console.log(`File size of cipher in bytes: ${stats.size}`);
-      });
-      fs.stat(inputBuffer, (err, stats) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-        console.log(`File size of input file in bytes: ${stats.size}`);
-      });
-
-
-      fs.readFile(outputFile, function (err, data) {
-        if (err) {
-          throw err;
-        }
-
-        params = { Bucket: myBucket, Key: "cipher", Body: data };
-
-        s3.putObject(params, function (err, data) {
+      encryptor.encryptFile(path, outputFile, key, options, function (err) {
+        fs.stat(outputFile, (err, stats) => {
           if (err) {
-            console.log(err);
-            throw err;
-          } else {
-            console.log("Successfully uploaded data to webapp1buckett");
-            res.json({ message: "Success" });
+            console.error(err);
+            return;
           }
+          console.log(`File size of cipher in bytes: ${stats.size}`);
+        });
+
+        fs.readFile(outputFile, function (err, data) {
+          if (err) {
+            throw err;
+          }
+
+          params = { Bucket: myBucket, Key: outputFile, Body: data };
+
+          s3.putObject(params, function (err, data) {
+            if (err) {
+              console.log(err);
+              throw err;
+            } else {
+              const end = performance.now();
+              const elapsedTime = ((end - start) / 1000).toFixed(2);
+              console.log(elapsedTime, " seconds");
+              console.log("Successfully uploaded data to webapp1buckett");
+              t.path = elapsedTime;
+              if (i == 2) res.json({ Elapsed_Time: t });
+            }
+          });
         });
       });
-    }
-  });
-});
+    });
 
+    rs.on("error", (err) => {
+      // file.destroy();
+      console.error("Download failed:", err);
+    });
+  })
+});
 app.listen(PORT);

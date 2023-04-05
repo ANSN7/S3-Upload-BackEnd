@@ -1,4 +1,6 @@
 node_modules
-*.pdf
-cipher
-*.pem
+downloaded-file
+myFile200MB
+encrypted_myFile200MB
+encrypted_myFile512MB
+myFile512MB
