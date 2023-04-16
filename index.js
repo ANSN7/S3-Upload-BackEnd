@@ -3,6 +3,7 @@ const AWS = require("aws-sdk");
 const crypto = require("crypto");
 const fs = require("fs");
 var encryptor = require("file-encryptor");
+const bodyParser = require('body-parser');
 require("dotenv").config();
 // env vars
 AWS.config.update({
@@ -17,20 +18,15 @@ const s3 = new AWS.S3({
 const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.use(cors({
-  origin: "*"
-}));
-
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  next();
-});
+app.use(cors());
+app.use(bodyParser.json({ limit: '1gb' }));
+app.use(bodyParser.urlencoded({ limit: '1gb', extended: true }));
 
 app.get("/api/s3/file/:id/upload", async (req, res) => {
 
   var file_id = req.params["id"];
   const myBucket = "webapp1buckett";
-  const downloadPath1 = "an4.pdf";
+  const downloadPath1 = "myFile512MB";
   const downloadPath2 = "myFile1GB";
   const downloadPath3 = "myFile5GB";
   const paths = {
