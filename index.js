@@ -17,7 +17,9 @@ const s3 = new AWS.S3({
 const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.use(cors());
+app.use(cors({
+  origin: '*'
+}));
 
 app.get("/api/s3/file/:id/upload", async (req, res) => {
 
