@@ -30,7 +30,7 @@ app.get("/api/s3/file/:id/upload", async (req, res) => {
 
   var file_id = req.params["id"];
   const myBucket = "webapp1buckett";
-  const downloadPath1 = "myFile512MB";
+  const downloadPath1 = "an4.pdf";
   const downloadPath2 = "myFile1GB";
   const downloadPath3 = "myFile5GB";
   const paths = {
