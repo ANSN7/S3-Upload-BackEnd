@@ -18,8 +18,13 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors({
-  origin: "https://s3-upload-production.up.railway.app"
+  origin: "*"
 }));
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  next();
+});
 
 app.get("/api/s3/file/:id/upload", async (req, res) => {
 
