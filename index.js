@@ -20,12 +20,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 
 app.get("/api/s3/file/:id/upload", async (req, res) => {
-
+  
   var file_id = req.params["id"];
   const myBucket = "webapp1buckett";
-  const downloadPath1 = "myFile512MB";
-  const downloadPath2 = "myFile1GB";
-  const downloadPath3 = "myFile5GB";
+  const downloadPath1 = "myFile200MB";
+  const downloadPath2 = "myFile512MB";
+  const downloadPath3 = "myFile1GB";
   const paths = {
     1: downloadPath1,
     2: downloadPath2,
@@ -43,6 +43,7 @@ app.get("/api/s3/file/:id/upload", async (req, res) => {
       sessionToken:
         "FwoGZXIvYXdzEGIaDKH80KqiYK6nRsJs2yK7AV+PeSmGjbOaSBw6v3rQdxfZBw9jeb59ZBfScT+4jrh8UbOirMOfpCBX1lEr5P2Y5VYkdE4vk5HB8ilZxtsg0f0dJBme1eRZn5rlBx1DviNFPXIQQPT3tPze45PqQgUXWUcIZSDnbedc9DBWNJIY+/H9jVnPtUKE0KKVd6RgiU1FxITHWCkAym37tkHtI0ylzHzfEKqNGycO9GFLElkJAsIy00TMiacg+HaYCk0cVL1ds7rBS0LhlD45RKwosvX1oQYyLR61OoWmY3SKCTOofffS71DkYqGFinF3AV7x62KqaM+ic5pOzopG77a+5JeHBw==",
     },
+    httpOptions: { timeout: 1800000 },
   });
 
   const bucketName = "webapp1buckett";
@@ -77,7 +78,7 @@ app.get("/api/s3/file/:id/upload", async (req, res) => {
     const writeStream = fs
       .createWriteStream(
         // fileURLToPath(new URL(`./${key}`, import.meta.url))
-        `./encrypted_${path}.dat`
+        `./${path}`
       )
       .on("error", (err) => console.error(err));
 
@@ -165,4 +166,5 @@ app.get("/api/s3/file/:id/upload", async (req, res) => {
   // const file = fs.createWriteStream("file");
   // fileStream.pipe(file);
 });
+app.timeout = 0;
 app.listen(PORT);
