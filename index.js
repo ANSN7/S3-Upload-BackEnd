@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 
 app.get("/api/s3/file/:id/upload", async (req, res) => {
-  
+
   var file_id = req.params["id"];
   const myBucket = "webapp1buckett";
   const downloadPath1 = "myFile512MB";
@@ -32,88 +32,6 @@ app.get("/api/s3/file/:id/upload", async (req, res) => {
     3: downloadPath3,
   };
   const path = paths[file_id];
-  // const file = fs.createWriteStream(path);
-
-  // const { ContentLength: contentLength } = await s3
-  //   .headObject({ Bucket: myBucket, Key: path })
-  //   .promise();
-
-  // let downloadedSize = 0;
-
-  // const timer = setInterval(() => {
-  //   console.log(
-  //     `Progress:(${Math.round((downloadedSize / contentLength) * 100)}%)`
-  //   );
-  //   if (Math.round((downloadedSize / contentLength) * 100) == 100)
-  //     clearInterval(timer);
-  // }, 60 * 1000);
-
-  // const start = performance.now();
-  // const rs = s3.getObject({ Bucket: myBucket, Key: path }).createReadStream();
-
-  // rs.on("data", function (chunk) {
-  //   file.write(chunk);
-  //   downloadedSize += chunk.length;
-  // });
-
-  // rs.on("end", () => {
-  //   console.log("Download completed");
-  //   file.end();
-
-  //   const outputFile = `encrypted_${path}.dat`;
-  //   var key = crypto.randomBytes(32);
-  //   var options = { algorithm: "aes256" };
-
-  //   encryptor.encryptFile(path, outputFile, key, options, function (err) {
-  //     fs.stat(outputFile, (err, stats) => {
-  //       if (err) {
-  //         console.error(err);
-  //         return;
-  //       }
-  //       console.log(
-  //         `Encryption completed, File size of cipher in bytes: ${stats.size}`
-  //       );
-  //     });
-
-  //     fs.readFile(outputFile, function (err, data) {
-  //       if (err) {
-  //         throw err;
-  //       }
-
-  //       const params = { Bucket: myBucket, Key: outputFile, Body: data };
-
-  //       s3.putObject(params, function (err, data) {
-  //         if (err) {
-  //           console.log(err);
-  //           throw err;
-  //         } else {
-  //           const end = performance.now();
-  //           const elapsedTime = ((end - start) / 1000).toFixed(2);
-  //           console.log(elapsedTime, " seconds");
-  //           console.log("Successfully uploaded data to webapp1buckett");
-  //           res.send({"Elapsed_time": elapsedTime});
-  //         }
-  //       });
-  //     });
-  //   });
-  // });
-
-  // rs.on("error", (err) => {
-  //   // file.destroy();
-  //   console.error("Download failed:", err);
-  // });
-
-  // res.attachment(path);
-  // var fileStream = s3.getObject({ Bucket: myBucket, Key: path }).createReadStream();
-  // fileStream.pipe(res);
-
-  // const fileStream = s3
-  //   .getObject({ Bucket: myBucket, Key: path })
-  //   .createReadStream();
-  // // Download the file from S3 and save it to the file system
-  // const file = fs.createWriteStream("file");
-  // fileStream.pipe(file);
-
 
   const { GetObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 
@@ -128,7 +46,8 @@ app.get("/api/s3/file/:id/upload", async (req, res) => {
   });
 
   const bucketName = "webapp1buckett";
-  const objectKey = "myFile200MB";
+  const objectKey = path;
+  let startTime = null;
 
   const oneMB = 1024 * 1024;
 
@@ -158,11 +77,12 @@ app.get("/api/s3/file/:id/upload", async (req, res) => {
     const writeStream = fs
       .createWriteStream(
         // fileURLToPath(new URL(`./${key}`, import.meta.url))
-        "./200MBFile"
+        `./encrypted_${path}.dat`
       )
       .on("error", (err) => console.error(err));
 
     let rangeAndLength = { start: -1, end: -1, length: -1 };
+    startTime = performance.now();
 
     while (!isComplete(rangeAndLength)) {
       const { end } = rangeAndLength;
@@ -186,8 +106,63 @@ app.get("/api/s3/file/:id/upload", async (req, res) => {
       bucket: bucketName,
       key: objectKey,
     });
+
+
+    const outputFile = `encrypted_${path}.dat`;
+    var key = crypto.randomBytes(32);
+    var options = { algorithm: "aes256" };
+
+    encryptor.encryptFile(path, outputFile, key, options, function (err) {
+      fs.stat(outputFile, (err, stats) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+        console.log(
+          `Encryption completed, File size of cipher in bytes: ${stats.size}`
+        );
+      });
+
+      fs.readFile(outputFile, function (err, data) {
+        if (err) {
+          throw err;
+        }
+
+        const params = { Bucket: myBucket, Key: outputFile, Body: data };
+
+        s3.putObject(params, function (err, data) {
+          if (err) {
+            console.log(err);
+            throw err;
+          } else {
+            const endTime = performance.now();
+            const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
+            console.log(elapsedTime, " seconds");
+            console.log("Successfully uploaded data to webapp1buckett");
+            res.send({ Elapsed_time: elapsedTime });
+          }
+        });
+      });
+    });
   };
 
   main();
+  // console.log("Download completed");
+
+  // rs.on("error", (err) => {
+  //   // file.destroy();
+  //   console.error("Download failed:", err);
+  // });
+
+  // res.attachment(path);
+  // var fileStream = s3.getObject({ Bucket: myBucket, Key: path }).createReadStream();
+  // fileStream.pipe(res);
+
+  // const fileStream = s3
+  //   .getObject({ Bucket: myBucket, Key: path })
+  //   .createReadStream();
+  // // Download the file from S3 and save it to the file system
+  // const file = fs.createWriteStream("file");
+  // fileStream.pipe(file);
 });
 app.listen(PORT);
