@@ -35,9 +35,9 @@ app.use(cors());
 app.get("/api/s3/file/:id/upload", async (req, res) => {
   var file_id = req.params["id"];
   const myBucket = "webapp1buckett";
-  const downloadPath1 = "myFile200MB";
-  const downloadPath2 = "myFile512MB";
-  const downloadPath3 = "myFile1GB";
+  const downloadPath1 = "myFile512MB";
+  const downloadPath2 = "myFile1GB";
+  const downloadPath3 = "myFile5GB";
   const paths = {
     1: downloadPath1,
     2: downloadPath2,
