@@ -115,147 +115,18 @@ app.get("/api/s3/file/:id/upload", async (req, res) => {
         console.log(
           `Encryption completed, File size of cipher in bytes: ${stats.size}`
         );
+        const endTime = performance.now();
+        const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
+        console.log(elapsedTime, " seconds");
+        console.log("Successfully encrypted data");
+        res.send({ Elapsed_time: elapsedTime });
       });
-
-      fs.readFile(outputFile, function (err, data) {
-        if (err) {
-          throw err;
-        }
-
-        const uploadFile = async () => {
-          const stream = fs.createReadStream(outputFile);
-
-          const paramsObj = {
-            Bucket: myBucket,
-            Key: outputFile,
-            Body: stream,
-            ACL: "public-read",
-          };
-
-          const options = {
-            partSize: 10 * 1024 * 1024,
-            queueSize: 1,
-          };
-
-          try {
-            await s3.upload(paramsObj, options).promise();
-            console.log("upload OK");
-          } catch (error) {
-            console.log("upload ERROR", error);
-          }
-        };
-
-        var buffer = fs.readFileSync("./" + outputFile);
-        var startTime = new Date();
-        var partNum = 0;
-        var partSize = 1024 * 1024 * 5; // Minimum 5MB per chunk (except the last part)
-        var numPartsLeft = Math.ceil(buffer.length / partSize);
-        var maxUploadTries = 3;
-        var multiPartParams = {
-          Bucket: myBucket,
-          Key: outputFile,
-        };
-        var multipartMap = {
-          Parts: [],
-        };
-
-        function completeMultipartUpload(s3, doneParams) {
-          s3.completeMultipartUpload(doneParams, function (err, data) {
-            if (err) {
-              console.log(
-                "An error occurred while completing the multipart upload"
-              );
-              console.log(err);
-            } else {
-              var delta = (new Date() - startTime) / 1000;
-              console.log("Completed upload in", delta, "seconds");
-              console.log("Final upload data:", data);
-              const endTime = performance.now();
-              const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
-              console.log(elapsedTime, " seconds");
-              console.log("Successfully uploaded data to webapp1buckett");
-              res.send({ Elapsed_time: elapsedTime });
-            }
-          });
-        }
-
-        function uploadPart(s3, multipart, partParams, tryNum) {
-          var tryNum = tryNum || 1;
-          s3.uploadPart(partParams, function (multiErr, mData) {
-            if (multiErr) {
-              console.log("multiErr, upload part error:", multiErr);
-              if (tryNum < maxUploadTries) {
-                console.log(
-                  "Retrying upload of part: #",
-                  partParams.PartNumber
-                );
-                uploadPart(s3, multipart, partParams, tryNum + 1);
-              } else {
-                console.log("Failed uploading part: #", partParams.PartNumber);
-              }
-              return;
-            }
-            multipartMap.Parts[this.request.params.PartNumber - 1] = {
-              ETag: mData.ETag,
-              PartNumber: Number(this.request.params.PartNumber),
-            };
-            console.log("Completed part", this.request.params.PartNumber);
-            console.log("mData", mData);
-            if (--numPartsLeft > 0) return; // complete only when all parts uploaded
-
-            var doneParams = {
-              Bucket: myBucket,
-              Key: outputFile,
-              MultipartUpload: multipartMap,
-              UploadId: multipart.UploadId,
-            };
-
-            console.log("Completing upload...");
-            completeMultipartUpload(s3, doneParams);
-          });
-        }
-
-        async function helo() {
-          console.log("Creating multipart upload for:", outputFile);
-          s3.createMultipartUpload(
-            multiPartParams,
-            async function (mpErr, multipart) {
-              if (mpErr) {
-                console.log("Error!", mpErr);
-                return;
-              }
-              console.log("Got upload ID", multipart.UploadId);
-
-              // Grab each partSize chunk and upload it as a part
-              for (
-                var rangeStart = 0;
-                rangeStart < buffer.length;
-                rangeStart += partSize
-              ) {
-                partNum++;
-                var end = Math.min(rangeStart + partSize, buffer.length),
-                  partParams = {
-                    Body: buffer.slice(rangeStart, end),
-                    Bucket: myBucket,
-                    Key: outputFile,
-                    PartNumber: String(partNum),
-                    UploadId: multipart.UploadId,
-                  };
-
-                // Send a single part
-                console.log(
-                  "Uploading part: #",
-                  partParams.PartNumber,
-                  ", Range start:",
-                  rangeStart
-                );
-                await uploadPart(s3, multipart, partParams);
-              }
-            }
-          );
-        }
-        helo();
-      });
+      // fs.readFile(outputFile, function (err, data) {
+      //   if (err) {
+      //     throw err;
+      //   }
+        
+      // });
     });
   };
   main();
